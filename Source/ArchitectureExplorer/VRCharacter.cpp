@@ -37,6 +37,10 @@ void AVRCharacter::UpdateDestinationMarker()
 	);
 	if (bHit) {
 		DestinationMarker->SetWorldLocation(hitResult.Location);
+		DestinationMarker->SetVisibility(true);
+	}
+	else {
+		DestinationMarker->SetVisibility(false);
 	}
 }
 
