@@ -7,6 +7,9 @@
 #include <Components/SceneComponent.h>
 #include <Components/StaticMeshComponent.h>
 #include <Engine/World.h>
+#include <GameFramework/PlayerController.h>
+#include <Public/TimerManager.h>
+#include <Components/CapsuleComponent.h>
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -22,6 +25,22 @@ void AVRCharacter::OnVertical(float value)
 	fwd.Z = 0;
 	fwd.Normalize();
 	AddMovementInput(fwd * value);
+}
+
+void AVRCharacter::OnTeleport()
+{
+	APlayerController* controller = Cast<APlayerController>(GetController());
+	controller->PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeDuration, FLinearColor::Black);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AVRCharacter::FadeOutAndTeleport, FadeDuration);
+}
+
+void AVRCharacter::FadeOutAndTeleport()
+{
+	APlayerController* controller = Cast<APlayerController>(GetController());
+	controller->PlayerCameraManager->StartCameraFade(1.0f, 0.0f, FadeDuration, FLinearColor::Black);
+	FVector destination = DestinationMarker->GetComponentLocation();
+	destination.Y += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	SetActorLocation(destination);
 }
 
 void AVRCharacter::UpdateDestinationMarker()
@@ -86,6 +105,6 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	PlayerInputComponent->BindAxis(TEXT("Horizontal"), this, &AVRCharacter::OnHorizontal);
 	PlayerInputComponent->BindAxis(TEXT("Vertical"), this, &AVRCharacter::OnVertical);
-
+	PlayerInputComponent->BindAction(TEXT("Teleport"), EInputEvent::IE_Pressed, this, &AVRCharacter::OnTeleport);
 }
 

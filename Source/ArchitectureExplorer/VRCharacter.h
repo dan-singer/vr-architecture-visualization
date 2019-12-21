@@ -21,9 +21,16 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	UPROPERTY(EditDefaultsOnly)
 	float MaxTeleportDistance = 1000.0f;
 
+	UPROPERTY(EditDefaultsOnly)
+	float FadeDuration = 1.0f;
+
+	FTimerHandle TimerHandle;
+
 
 	void OnHorizontal(float value);
 	void OnVertical(float value);
+	void OnTeleport();
+	void FadeOutAndTeleport();
 
 	void UpdateDestinationMarker();
 
