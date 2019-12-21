@@ -5,6 +5,8 @@
 #include <Camera/CameraComponent.h>
 #include <Components/InputComponent.h>
 #include <Components/SceneComponent.h>
+#include <Components/StaticMeshComponent.h>
+#include <Engine/World.h>
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -22,6 +24,22 @@ void AVRCharacter::OnVertical(float value)
 	AddMovementInput(fwd * value);
 }
 
+void AVRCharacter::UpdateDestinationMarker()
+{
+	FHitResult hitResult;
+	FVector start = Camera->GetComponentLocation();
+	FVector end = start + Camera->GetForwardVector() * MaxTeleportDistance;
+	bool bHit = GetWorld()->LineTraceSingleByChannel(
+		hitResult,
+		Camera->GetComponentLocation(),
+		end,
+		ECollisionChannel::ECC_Visibility
+	);
+	if (bHit) {
+		DestinationMarker->SetWorldLocation(hitResult.Location);
+	}
+}
+
 // Sets default values
 AVRCharacter::AVRCharacter()
 {
@@ -33,6 +51,10 @@ AVRCharacter::AVRCharacter()
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
+
+	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Destination Marker"));
+	DestinationMarker->SetupAttachment(GetRootComponent());
+
 }
 
 // Called when the game starts or when spawned
@@ -45,10 +67,13 @@ void AVRCharacter::BeginPlay()
 void AVRCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	// Playspace Collision detection
 	FVector CamDelta = Camera->GetComponentLocation() - GetActorLocation();
 	CamDelta.Z = 0;
 	SetActorLocation(GetActorLocation() + CamDelta);
 	VRRoot->SetWorldLocation(VRRoot->GetComponentLocation() - CamDelta);
+
+	UpdateDestinationMarker();
 }
 
 // Called to bind functionality to input

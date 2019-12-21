@@ -15,10 +15,17 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	class UCameraComponent* Camera;
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* DestinationMarker;
+
+	UPROPERTY(EditDefaultsOnly)
+	float MaxTeleportDistance = 1000.0f;
 
 
 	void OnHorizontal(float value);
 	void OnVertical(float value);
+
+	void UpdateDestinationMarker();
 
 public:
 	// Sets default values for this character's properties
