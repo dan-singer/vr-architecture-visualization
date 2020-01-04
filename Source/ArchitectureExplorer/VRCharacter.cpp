@@ -132,6 +132,40 @@ void AVRCharacter::UpdateBlinkers()
 	float speed = GetVelocity().Size();
 	float radius = RadiusVsSpeed->GetFloatValue(speed);
 	BlinkerMaterialDynamic->SetScalarParameterValue(TEXT("Radius"), radius);
+
+	FVector2D center = GetBlinkerCenter();
+	BlinkerMaterialDynamic->SetVectorParameterValue(TEXT("Center"), FLinearColor(center.X, center.Y, 0));
+}
+
+FVector2D AVRCharacter::GetBlinkerCenter()
+{
+	FVector MovementDirection = GetVelocity().GetSafeNormal();
+	if (MovementDirection.IsNearlyZero())
+	{
+		return FVector2D(0.5f, 0.5f);
+	}
+	if (FVector::DotProduct(Camera->GetForwardVector(), MovementDirection) < 0) 
+	{
+		MovementDirection *= -1.0f;
+	}
+	FVector WorldStationaryLocation = Camera->GetComponentLocation() + MovementDirection * 100.0f;
+
+	APlayerController* Controller = Cast<APlayerController>(GetController());
+
+	if (!Controller)
+	{
+		return FVector2D(0.5f, 0.5f);
+	}
+
+	FVector2D ScreenLocation;
+	Controller->ProjectWorldLocationToScreen(WorldStationaryLocation, ScreenLocation);
+
+	int SizeX, SizeY;
+	Controller->GetViewportSize(SizeX, SizeY);
+
+	FVector2D Center(ScreenLocation.X / SizeX, ScreenLocation.Y / SizeY);
+
+	return Center;
 }
 
 // Called to bind functionality to input

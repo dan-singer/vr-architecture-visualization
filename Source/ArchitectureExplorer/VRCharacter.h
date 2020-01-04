@@ -43,6 +43,7 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	void OnTeleport();
 	void FadeOutAndTeleport();
 	void UpdateBlinkers();
+	FVector2D GetBlinkerCenter();
 
 
 	bool FindTeleportLocation(FVector& outLocation);
