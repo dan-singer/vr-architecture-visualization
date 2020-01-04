@@ -13,6 +13,7 @@
 #include <NavigationSystem.h>
 #include <Components/PostProcessComponent.h>
 #include <Materials/MaterialInstanceDynamic.h>
+#include <MotionControllerComponent.h>
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -49,8 +50,10 @@ void AVRCharacter::FadeOutAndTeleport()
 bool AVRCharacter::FindTeleportLocation(FVector& outLocation)
 {
 	FHitResult hitResult;
-	FVector start = Camera->GetComponentLocation();
-	FVector end = start + Camera->GetForwardVector() * MaxTeleportDistance;
+	FVector look = RightController->GetForwardVector();
+	look.RotateAngleAxis(30.0f, RightController->GetRightVector());
+	FVector start = RightController->GetComponentLocation();
+	FVector end = start + look * MaxTeleportDistance;
 	bool bHit = GetWorld()->LineTraceSingleByChannel(
 		hitResult,
 		Camera->GetComponentLocation(),
@@ -95,11 +98,20 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
 
+	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("Left Controller"));
+	LeftController->SetupAttachment(VRRoot);
+	LeftController->SetTrackingSource(EControllerHand::Left);
+
+	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("Right Controller"));
+	RightController->SetupAttachment(VRRoot);
+	RightController->SetTrackingSource(EControllerHand::Right);
+
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Destination Marker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
 
 	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
 	PostProcessComponent->SetupAttachment(GetRootComponent());
+
 
 }
 

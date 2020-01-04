@@ -18,6 +18,12 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* DestinationMarker;
 
+	UPROPERTY(VisibleAnywhere)
+	class UMotionControllerComponent* LeftController;
+
+	UPROPERTY(VisibleAnywhere)
+	class UMotionControllerComponent* RightController;
+
 	UPROPERTY(EditDefaultsOnly)
 	float MaxTeleportDistance = 1000.0f;
 
