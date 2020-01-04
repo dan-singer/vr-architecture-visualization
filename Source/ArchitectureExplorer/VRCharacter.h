@@ -19,6 +19,9 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	class UStaticMeshComponent* DestinationMarker;
 
 	UPROPERTY(VisibleAnywhere)
+	class USplineComponent* TeleportPath;
+
+	UPROPERTY(VisibleAnywhere)
 	class UMotionControllerComponent* LeftController;
 
 	UPROPERTY(VisibleAnywhere)
@@ -56,7 +59,8 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	FVector2D GetBlinkerCenter();
 
 
-	bool FindTeleportLocation(FVector& outLocation);
+	bool FindTeleportLocation(TArray<FVector>& outPath, FVector& outLocation);
+	void UpdateSpline(const TArray<FVector>& worldPoints);
 	void UpdateDestinationMarker();
 
 public:

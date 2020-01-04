@@ -16,6 +16,7 @@
 #include <MotionControllerComponent.h>
 #include <Kismet/GameplayStaticsTypes.h>
 #include <Kismet/GameplayStatics.h>
+#include <Components/SplineComponent.h>
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -49,7 +50,7 @@ void AVRCharacter::FadeOutAndTeleport()
 	SetActorLocation(destination);
 }
 
-bool AVRCharacter::FindTeleportLocation(FVector& outLocation)
+bool AVRCharacter::FindTeleportLocation(TArray<FVector>& outPath, FVector& outLocation)
 {
 	FVector look = RightController->GetForwardVector();
 	look.RotateAngleAxis(-30.0f, RightController->GetRightVector());
@@ -68,8 +69,11 @@ bool AVRCharacter::FindTeleportLocation(FVector& outLocation)
 	FPredictProjectilePathResult PathResult;
 	bool bHit = UGameplayStatics::PredictProjectilePath(GetWorld(), ProjectileParams, PathResult);
 
-
 	if (!bHit) return false;
+
+	for (int i = 0; i < PathResult.PathData.Num(); ++i) {
+		outPath.Add(PathResult.PathData[i].Location);
+	}
 
 	UNavigationSystemV1* nav = Cast<UNavigationSystemV1>(GetWorld()->GetNavigationSystem());
 	FNavLocation navLoc;
@@ -81,13 +85,26 @@ bool AVRCharacter::FindTeleportLocation(FVector& outLocation)
 	return true;
 }
 
+void AVRCharacter::UpdateSpline(const TArray<FVector>& worldPoints)
+{
+	TeleportPath->ClearSplinePoints(false);
+	for (int i = 0; i < worldPoints.Num(); ++i) {
+		FVector localLocation = TeleportPath->GetComponentTransform().InverseTransformPosition(worldPoints[i]);
+		FSplinePoint point(i, localLocation, ESplinePointType::Curve);
+		TeleportPath->AddPoint(point, false);
+	}
+	TeleportPath->UpdateSpline();
+}
+
 void AVRCharacter::UpdateDestinationMarker()
 {
 	FVector newLoc;
-	bool foundLoc = FindTeleportLocation(newLoc);
+	TArray<FVector> path;
+	bool foundLoc = FindTeleportLocation(path, newLoc);
 	if (foundLoc) {
 		DestinationMarker->SetWorldLocation(newLoc);
 		DestinationMarker->SetVisibility(true);
+		UpdateSpline(path);
 	}
 	else {
 		DestinationMarker->SetVisibility(false);
@@ -116,6 +133,9 @@ AVRCharacter::AVRCharacter()
 
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Destination Marker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
+
+	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("Teleport Path"));
+	TeleportPath->SetupAttachment(RightController);
 
 	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
 	PostProcessComponent->SetupAttachment(GetRootComponent());
