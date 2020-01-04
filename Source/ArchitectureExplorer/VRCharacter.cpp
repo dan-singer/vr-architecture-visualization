@@ -10,6 +10,9 @@
 #include <GameFramework/PlayerController.h>
 #include <Public/TimerManager.h>
 #include <Components/CapsuleComponent.h>
+#include <NavigationSystem.h>
+#include <Components/PostProcessComponent.h>
+#include <Materials/MaterialInstanceDynamic.h>
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -43,7 +46,7 @@ void AVRCharacter::FadeOutAndTeleport()
 	SetActorLocation(destination);
 }
 
-void AVRCharacter::UpdateDestinationMarker()
+bool AVRCharacter::FindTeleportLocation(FVector& outLocation)
 {
 	FHitResult hitResult;
 	FVector start = Camera->GetComponentLocation();
@@ -54,8 +57,25 @@ void AVRCharacter::UpdateDestinationMarker()
 		end,
 		ECollisionChannel::ECC_Visibility
 	);
-	if (bHit) {
-		DestinationMarker->SetWorldLocation(hitResult.Location);
+
+	if (!bHit) return false;
+
+	UNavigationSystemV1* nav = Cast<UNavigationSystemV1>(GetWorld()->GetNavigationSystem());
+	FNavLocation navLoc;
+	bool bProjected = nav->ProjectPointToNavigation((FVector)(hitResult.Location), navLoc, FVector::OneVector * 100.0f); 
+
+	if (!bProjected) return false;
+
+	outLocation = navLoc.Location;
+	return true;
+}
+
+void AVRCharacter::UpdateDestinationMarker()
+{
+	FVector newLoc;
+	bool foundLoc = FindTeleportLocation(newLoc);
+	if (foundLoc) {
+		DestinationMarker->SetWorldLocation(newLoc);
 		DestinationMarker->SetVisibility(true);
 	}
 	else {
@@ -78,12 +98,19 @@ AVRCharacter::AVRCharacter()
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Destination Marker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
 
+	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
+	PostProcessComponent->SetupAttachment(GetRootComponent());
+
 }
 
 // Called when the game starts or when spawned
 void AVRCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	BlinkerMaterialDynamic = UMaterialInstanceDynamic::Create(BlinkerMaterialBase, this);
+	PostProcessComponent->AddOrUpdateBlendable(BlinkerMaterialDynamic);
+	BlinkerMaterialDynamic->SetScalarParameterValue(TEXT("Radius"), 1.0f);
+
 }
 
 // Called every frame
@@ -96,7 +123,15 @@ void AVRCharacter::Tick(float DeltaTime)
 	SetActorLocation(GetActorLocation() + CamDelta);
 	VRRoot->SetWorldLocation(VRRoot->GetComponentLocation() - CamDelta);
 
+	UpdateBlinkers();
 	UpdateDestinationMarker();
+}
+
+void AVRCharacter::UpdateBlinkers()
+{
+	float speed = GetVelocity().Size();
+	float radius = RadiusVsSpeed->GetFloatValue(speed);
+	BlinkerMaterialDynamic->SetScalarParameterValue(TEXT("Radius"), radius);
 }
 
 // Called to bind functionality to input

@@ -24,6 +24,17 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	UPROPERTY(EditDefaultsOnly)
 	float FadeDuration = 1.0f;
 
+	UPROPERTY()
+	class UPostProcessComponent* PostProcessComponent;
+
+	UPROPERTY(EditAnywhere)
+	class UMaterialInterface* BlinkerMaterialBase;
+
+	class UMaterialInstanceDynamic* BlinkerMaterialDynamic;
+
+	UPROPERTY(EditAnywhere)
+	class UCurveFloat* RadiusVsSpeed;
+
 	FTimerHandle TimerHandle;
 
 
@@ -31,7 +42,10 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	void OnVertical(float value);
 	void OnTeleport();
 	void FadeOutAndTeleport();
+	void UpdateBlinkers();
 
+
+	bool FindTeleportLocation(FVector& outLocation);
 	void UpdateDestinationMarker();
 
 public:
@@ -45,6 +59,7 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
