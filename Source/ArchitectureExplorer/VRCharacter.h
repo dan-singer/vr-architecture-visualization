@@ -25,10 +25,14 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	class UMotionControllerComponent* RightController;
 
 	UPROPERTY(EditDefaultsOnly)
-	float MaxTeleportDistance = 1000.0f;
+	float MaxTeleportDistance = 500.0f;
+
+	UPROPERTY(EditDefaultsOnly)
+	float TeleportDuration = 5.0f;
 
 	UPROPERTY(EditDefaultsOnly)
 	float FadeDuration = 1.0f;
+
 
 	UPROPERTY()
 	class UPostProcessComponent* PostProcessComponent;
