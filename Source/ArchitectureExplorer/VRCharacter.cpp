@@ -18,6 +18,7 @@
 #include <Kismet/GameplayStatics.h>
 #include <Components/SplineComponent.h>
 #include <Components/SplineMeshComponent.h>
+#include "HandController.h"
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -55,13 +56,13 @@ void AVRCharacter::FadeOutAndTeleport()
 
 bool AVRCharacter::FindTeleportLocation(TArray<FVector>& outPath, FVector& outLocation)
 {
-	FVector look = RightController->GetForwardVector();
-	look.RotateAngleAxis(-30.0f, RightController->GetRightVector());
+	FVector look = RightController->GetActorForwardVector();
+	look.RotateAngleAxis(-30.0f, RightController->GetActorRightVector());
 
 	// Get the parabolic arc
 	FPredictProjectilePathParams ProjectileParams(
 		3.0f,
-		RightController->GetComponentLocation(),
+		RightController->GetMotionController()->GetComponentLocation(),
 		look * MaxTeleportDistance,
 		TeleportDuration,
 		ECollisionChannel::ECC_Visibility,
@@ -108,7 +109,7 @@ void AVRCharacter::UpdateSpline(const TArray<FVector>& worldPoints)
 		{
 			SplineMesh = NewObject<USplineMeshComponent>(this);
 			SplineMesh->SetMobility(EComponentMobility::Movable);
-			SplineMesh->AttachToComponent(RightController, FAttachmentTransformRules::KeepRelativeTransform);
+			SplineMesh->AttachToComponent(TeleportPath, FAttachmentTransformRules::KeepRelativeTransform);
 			SplineMesh->SetStaticMesh(TeleportArcMesh);
 			SplineMesh->SetMaterial(0, TeleportArcMaterial);
 			SplineMesh->RegisterComponent();
@@ -160,19 +161,11 @@ AVRCharacter::AVRCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(VRRoot);
 
-	LeftController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("Left Controller"));
-	LeftController->SetupAttachment(VRRoot);
-	LeftController->SetTrackingSource(EControllerHand::Left);
-
-	RightController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("Right Controller"));
-	RightController->SetupAttachment(VRRoot);
-	RightController->SetTrackingSource(EControllerHand::Right);
-
 	DestinationMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Destination Marker"));
 	DestinationMarker->SetupAttachment(GetRootComponent());
 
 	TeleportPath = CreateDefaultSubobject<USplineComponent>(TEXT("Teleport Path"));
-	TeleportPath->SetupAttachment(RightController);
+	TeleportPath->SetupAttachment(VRRoot);
 
 	PostProcessComponent = CreateDefaultSubobject<UPostProcessComponent>(TEXT("PostProcessComponent"));
 	PostProcessComponent->SetupAttachment(GetRootComponent());
@@ -187,6 +180,17 @@ void AVRCharacter::BeginPlay()
 	BlinkerMaterialDynamic = UMaterialInstanceDynamic::Create(BlinkerMaterialBase, this);
 	PostProcessComponent->AddOrUpdateBlendable(BlinkerMaterialDynamic);
 	BlinkerMaterialDynamic->SetScalarParameterValue(TEXT("Radius"), 1.0f);
+	
+	LeftController = GetWorld()->SpawnActor<AHandController>(HandController);
+	LeftController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+	LeftController->SetHand(EControllerHand::Left);
+	LeftController->SetOwner(this);
+
+	RightController = GetWorld()->SpawnActor<AHandController>(HandController);
+	RightController->AttachToComponent(VRRoot, FAttachmentTransformRules::KeepRelativeTransform);
+	RightController->SetHand(EControllerHand::Right);
+	RightController->SetOwner(this);
+
 }
 
 // Called every frame

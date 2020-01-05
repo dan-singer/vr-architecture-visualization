@@ -24,11 +24,15 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	class USplineComponent* TeleportPath;
 
 	UPROPERTY(VisibleAnywhere)
-	class UMotionControllerComponent* LeftController;
+	class AHandController* LeftController;
 
 	UPROPERTY(VisibleAnywhere)
-	class UMotionControllerComponent* RightController;
+	class AHandController* RightController;
 
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AHandController> HandController;
+
+	UPROPERTY()
 	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
 
 	UPROPERTY(EditDefaultsOnly)
