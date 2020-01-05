@@ -13,8 +13,10 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere)
 	class UCameraComponent* Camera;
+
 	UPROPERTY(VisibleAnywhere)
 	class USceneComponent* VRRoot;
+
 	UPROPERTY(VisibleAnywhere)
 	class UStaticMeshComponent* DestinationMarker;
 
@@ -26,6 +28,14 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere)
 	class UMotionControllerComponent* RightController;
+
+	TArray<class USplineMeshComponent*> TeleportPathMeshPool;
+
+	UPROPERTY(EditDefaultsOnly)
+	UStaticMesh* TeleportArcMesh;
+
+	UPROPERTY(EditDefaultsOnly)
+	UMaterialInterface* TeleportArcMaterial;
 
 	UPROPERTY(EditDefaultsOnly)
 	float MaxTeleportDistance = 500.0f;
@@ -50,6 +60,7 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 
 	FTimerHandle TimerHandle;
 
+	bool HasDestination = false;
 
 	void OnHorizontal(float value);
 	void OnVertical(float value);

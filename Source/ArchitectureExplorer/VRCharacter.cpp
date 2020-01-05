@@ -17,6 +17,7 @@
 #include <Kismet/GameplayStaticsTypes.h>
 #include <Kismet/GameplayStatics.h>
 #include <Components/SplineComponent.h>
+#include <Components/SplineMeshComponent.h>
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -36,6 +37,8 @@ void AVRCharacter::OnVertical(float value)
 
 void AVRCharacter::OnTeleport()
 {
+	if (!HasDestination) return;
+
 	APlayerController* controller = Cast<APlayerController>(GetController());
 	controller->PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeDuration, FLinearColor::Black);
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AVRCharacter::FadeOutAndTeleport, FadeDuration);
@@ -55,6 +58,7 @@ bool AVRCharacter::FindTeleportLocation(TArray<FVector>& outPath, FVector& outLo
 	FVector look = RightController->GetForwardVector();
 	look.RotateAngleAxis(-30.0f, RightController->GetRightVector());
 
+	// Get the parabolic arc
 	FPredictProjectilePathParams ProjectileParams(
 		3.0f,
 		RightController->GetComponentLocation(),
@@ -63,8 +67,6 @@ bool AVRCharacter::FindTeleportLocation(TArray<FVector>& outPath, FVector& outLo
 		ECollisionChannel::ECC_Visibility,
 		this
 	);
-	ProjectileParams.DrawDebugType = EDrawDebugTrace::ForOneFrame;
-	// ProjectileParams.bTraceComplex = true;
 
 	FPredictProjectilePathResult PathResult;
 	bool bHit = UGameplayStatics::PredictProjectilePath(GetWorld(), ProjectileParams, PathResult);
@@ -74,7 +76,7 @@ bool AVRCharacter::FindTeleportLocation(TArray<FVector>& outPath, FVector& outLo
 	for (int i = 0; i < PathResult.PathData.Num(); ++i) {
 		outPath.Add(PathResult.PathData[i].Location);
 	}
-
+	// Project that arc onto the navmesh
 	UNavigationSystemV1* nav = Cast<UNavigationSystemV1>(GetWorld()->GetNavigationSystem());
 	FNavLocation navLoc;
 	bool bProjected = nav->ProjectPointToNavigation((FVector)(PathResult.HitResult.Location), navLoc, FVector::OneVector * 100.0f); 
@@ -94,20 +96,55 @@ void AVRCharacter::UpdateSpline(const TArray<FVector>& worldPoints)
 		TeleportPath->AddPoint(point, false);
 	}
 	TeleportPath->UpdateSpline();
+
+	// Create the laser pointer mesh
+	for (int i = 0; i < worldPoints.Num() - 1; ++i) {
+		USplineMeshComponent* SplineMesh;
+		if (i < TeleportPathMeshPool.Num())
+		{
+			SplineMesh = TeleportPathMeshPool[i];
+		}
+		else
+		{
+			SplineMesh = NewObject<USplineMeshComponent>(this);
+			SplineMesh->SetMobility(EComponentMobility::Movable);
+			SplineMesh->AttachToComponent(RightController, FAttachmentTransformRules::KeepRelativeTransform);
+			SplineMesh->SetStaticMesh(TeleportArcMesh);
+			SplineMesh->SetMaterial(0, TeleportArcMaterial);
+			SplineMesh->RegisterComponent();
+			TeleportPathMeshPool.Add(SplineMesh);
+		}
+		SplineMesh->SetVisibility(true);
+		SplineMesh->SetRelativeLocation(FVector(0, 0, 0));
+
+		FVector StartLocation, StartTangent;
+		FVector EndLocation, EndTangent;
+		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i, StartLocation, StartTangent);
+		TeleportPath->GetLocalLocationAndTangentAtSplinePoint(i + 1, EndLocation, EndTangent);
+		SplineMesh->SetStartAndEnd(StartLocation, StartTangent, EndLocation, EndTangent);
+	}
+
+	// Hide any unused mesh components
+	int hideStart = worldPoints.Num() > 0 ? worldPoints.Num() - 1 : 0;
+	for (int i = hideStart; i < TeleportPathMeshPool.Num(); ++i) {
+		TeleportPathMeshPool[i]->SetVisibility(false);
+	}
 }
 
 void AVRCharacter::UpdateDestinationMarker()
 {
 	FVector newLoc;
 	TArray<FVector> path;
-	bool foundLoc = FindTeleportLocation(path, newLoc);
-	if (foundLoc) {
+	HasDestination = FindTeleportLocation(path, newLoc);
+	if (HasDestination) {
 		DestinationMarker->SetWorldLocation(newLoc);
 		DestinationMarker->SetVisibility(true);
 		UpdateSpline(path);
 	}
 	else {
 		DestinationMarker->SetVisibility(false);
+		TArray<FVector> empty;
+		UpdateSpline(empty);
 	}
 }
 
@@ -150,7 +187,6 @@ void AVRCharacter::BeginPlay()
 	BlinkerMaterialDynamic = UMaterialInstanceDynamic::Create(BlinkerMaterialBase, this);
 	PostProcessComponent->AddOrUpdateBlendable(BlinkerMaterialDynamic);
 	BlinkerMaterialDynamic->SetScalarParameterValue(TEXT("Radius"), 1.0f);
-
 }
 
 // Called every frame
