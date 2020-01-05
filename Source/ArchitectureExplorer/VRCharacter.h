@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "HandController.h"
 #include "VRCharacter.generated.h"
 
 UCLASS()
@@ -50,6 +51,10 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	UPROPERTY(EditDefaultsOnly)
 	float FadeDuration = 1.0f;
 
+	UPROPERTY(EditDefaultsOnly)
+	float SnapTurnDegrees = 45.0f;
+
+	float CurrentSnapTurnDegrees = SnapTurnDegrees;
 
 	UPROPERTY()
 	class UPostProcessComponent* PostProcessComponent;
@@ -69,10 +74,19 @@ class ARCHITECTUREEXPLORER_API AVRCharacter : public ACharacter
 	void OnHorizontal(float value);
 	void OnVertical(float value);
 	void OnTeleport();
+	void OnSnapRight();
+	void OnSnapLeft();
+	void SnapTurn();
+	void SnapTurnEnd();
 	void FadeOutAndTeleport();
 	void UpdateBlinkers();
 	FVector2D GetBlinkerCenter();
 
+	void GripLeft() { LeftController->Grip(); }
+	void ReleaseLeft()  { LeftController->Release(); }
+
+	void GripRight() { RightController->Grip(); }
+	void ReleaseRight() { RightController->Release(); }
 
 	bool FindTeleportLocation(TArray<FVector>& outPath, FVector& outLocation);
 	void UpdateSpline(const TArray<FVector>& worldPoints);

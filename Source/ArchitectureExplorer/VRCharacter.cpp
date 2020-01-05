@@ -18,7 +18,6 @@
 #include <Kismet/GameplayStatics.h>
 #include <Components/SplineComponent.h>
 #include <Components/SplineMeshComponent.h>
-#include "HandController.h"
 
 void AVRCharacter::OnHorizontal(float value)
 {
@@ -43,6 +42,32 @@ void AVRCharacter::OnTeleport()
 	APlayerController* controller = Cast<APlayerController>(GetController());
 	controller->PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeDuration, FLinearColor::Black);
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AVRCharacter::FadeOutAndTeleport, FadeDuration);
+}
+
+void AVRCharacter::OnSnapRight()
+{
+	CurrentSnapTurnDegrees = abs(SnapTurnDegrees);
+	SnapTurn();
+}
+
+void AVRCharacter::OnSnapLeft()
+{
+	CurrentSnapTurnDegrees = -abs(SnapTurnDegrees);
+	SnapTurn();
+}
+
+void AVRCharacter::SnapTurn()
+{
+	APlayerController* controller = Cast<APlayerController>(GetController());
+	controller->PlayerCameraManager->StartCameraFade(0.0f, 1.0f, FadeDuration, FLinearColor::Black);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &AVRCharacter::SnapTurnEnd, FadeDuration);
+}
+
+void AVRCharacter::SnapTurnEnd()
+{
+	APlayerController* controller = Cast<APlayerController>(GetController());
+	controller->PlayerCameraManager->StartCameraFade(1.0f, 0.0f, FadeDuration, FLinearColor::Black);
+	AddControllerYawInput(CurrentSnapTurnDegrees);
 }
 
 void AVRCharacter::FadeOutAndTeleport()
@@ -191,6 +216,7 @@ void AVRCharacter::BeginPlay()
 	RightController->SetHand(EControllerHand::Right);
 	RightController->SetOwner(this);
 
+	LeftController->PairController(RightController);
 }
 
 // Called every frame
@@ -255,5 +281,11 @@ void AVRCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis(TEXT("Horizontal"), this, &AVRCharacter::OnHorizontal);
 	PlayerInputComponent->BindAxis(TEXT("Vertical"), this, &AVRCharacter::OnVertical);
 	PlayerInputComponent->BindAction(TEXT("Teleport"), EInputEvent::IE_Pressed, this, &AVRCharacter::OnTeleport);
+	PlayerInputComponent->BindAction(TEXT("GripLeft"), EInputEvent::IE_Pressed, this, &AVRCharacter::GripLeft);
+	PlayerInputComponent->BindAction(TEXT("GripLeft"), EInputEvent::IE_Released, this, &AVRCharacter::ReleaseLeft);
+	PlayerInputComponent->BindAction(TEXT("GripRight"), EInputEvent::IE_Pressed, this, &AVRCharacter::GripRight);
+	PlayerInputComponent->BindAction(TEXT("GripRight"), EInputEvent::IE_Released, this, &AVRCharacter::ReleaseRight);
+	PlayerInputComponent->BindAction(TEXT("SnapRight"), EInputEvent::IE_Pressed, this, &AVRCharacter::OnSnapRight);
+	PlayerInputComponent->BindAction(TEXT("SnapLeft"), EInputEvent::IE_Pressed, this, &AVRCharacter::OnSnapLeft);
 }
 
